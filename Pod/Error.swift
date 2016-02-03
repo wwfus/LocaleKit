@@ -9,5 +9,5 @@
 import Foundation
 
 enum LocaleKitError: ErrorType {
-    case TemporaryDirectoryCreationFailed
+    case FailedToParseJSON(path: String)
 }

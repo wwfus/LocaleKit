@@ -47,10 +47,10 @@ import Zip
 
         try Zip.unzipFile(bundleURL, destination: temporaryDirectory, overwrite: true, password: password, progress: nil)
 
-        loadLocalizations(temporaryDirectory)
+        try loadLocalizations(temporaryDirectory)
     }
 
-    private func loadLocalizations(path: NSURL) {
+    private func loadLocalizations(path: NSURL) throws {
 
         let localizationDirectory = path.URLByAppendingPathComponent(Constants.LocalizationDirectoryName, isDirectory: true)
 
@@ -72,9 +72,9 @@ import Zip
             return (url, data)
         }
 
-        let jsonObjects = data.flatMap { (url, data) -> (NSURL, [String : AnyObject])? in
+        let jsonObjects = try data.flatMap { (url, data) -> (NSURL, [String : AnyObject])? in
             guard let json = (try? NSJSONSerialization.JSONObjectWithData(data, options: [])) as? [String : AnyObject] else {
-                return nil
+                throw LocaleKitError.FailedToParseJSON(path: url.absoluteString)
             }
             return (url, json)
         }
