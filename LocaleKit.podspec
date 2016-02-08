@@ -18,6 +18,6 @@ s.homepage         = "https://github.com/<GITHUB_USERNAME>/LocaleKit"
 
   s.source_files = 'Pod/**/*.swift'
 
-  s.dependency 'Zip', '~> 0.1'
+  s.dependency 'zipzap', '~> 8.1'
 
 end
