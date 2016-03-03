@@ -24,8 +24,8 @@ import zipzap
     ]
 
     private var activeLocalization: [String : AnyObject] {
-        // TODO: Fix
-        return localizations[Constants.BaseLocaleName] as? [String : AnyObject] ?? [:]
+        let languageCode = (NSLocale.autoupdatingCurrentLocale().objectForKey(NSLocaleLanguageCode) as? String) ?? Constants.BaseLocaleName
+        return (localizations[languageCode] ?? localizations[Constants.BaseLocaleName]) as? [String : AnyObject] ?? [:]
     }
 
     // MARK: Initialization
