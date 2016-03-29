@@ -36,6 +36,9 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
         else if let loc = localizations[languageCode] as? LocalizationMap {
             return loc
         }
+        else if let loc = localizations[Constants.BaseLocaleName] as? LocalizationMap {
+            return loc
+        }
         return [:]
     }
 
@@ -66,14 +69,14 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
             return (url, data)
         }
 
-        let jsonObjects = try data.flatMap { (url, data) -> (NSURL, [String : AnyObject])? in
-            guard let json = (try? NSJSONSerialization.JSONObjectWithData(data, options: [])) as? [String : AnyObject] else {
+        let jsonObjects = try data.flatMap { (url, data) -> (NSURL, LocalizationMap)? in
+            guard let json = (try? NSJSONSerialization.JSONObjectWithData(data, options: [])) as? LocalizationMap else {
                 throw LocaleKitError.FailedToParseJSON(path: url.absoluteString)
             }
             return (url, json)
         }
 
-        let locales = jsonObjects.flatMap { (url, json) -> (String, [String : AnyObject])? in
+        let locales = jsonObjects.flatMap { (url, json) -> (String, LocalizationMap)? in
             guard let components = url.pathComponents where components.count >= 2 else {
                 return nil
             }
@@ -82,7 +85,7 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
         }
 
         for (locale, data) in locales {
-            let target = (localizations[locale] as? [String : AnyObject]) ?? (locale == Constants.BaseLocaleName ? [:] : localizations[Constants.BaseLocaleName] as? [String : AnyObject]) ?? [:]
+            let target = (localizations[locale] as? LocalizationMap) ?? (locale == Constants.BaseLocaleName ? [:] : localizations[Constants.BaseLocaleName] as? LocalizationMap) ?? [:]
             localizations[locale] = deepMerge(target, data)
         }
 
@@ -98,7 +101,7 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
         var currentValue: AnyObject? = activeLocalization
         while components.count > 0 {
             let component = components.removeFirst()
-            currentValue = (currentValue as? [String : AnyObject])?[component]
+            currentValue = (currentValue as? LocalizationMap)?[component]
         }
         return currentValue
     }
