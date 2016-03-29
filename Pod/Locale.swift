@@ -9,6 +9,10 @@
 import Foundation
 import zipzap
 
+private let languageComponents = NSLocale.componentsFromLocaleIdentifier(NSLocale.currentLocale().localeIdentifier)
+private let languageCode = languageComponents[NSLocaleLanguageCode] ?? Constants.BaseLocaleName
+private let scriptCode = languageComponents[NSLocaleScriptCode]
+
 @objc public final class Locale: NSObject {
 
     // MARK: Singleton
@@ -17,15 +21,22 @@ import zipzap
 
     // MARK: Private Properties
 
+    private typealias LocalizationMap = [String : AnyObject]
+    
     private let fileManager = NSFileManager.defaultManager()
-
+    
     private var localizations: [String : AnyObject] = [
         Constants.BaseLocaleName : Dictionary<String, AnyObject>()
     ]
 
-    private var activeLocalization: [String : AnyObject] {
-        let languageCode = (NSLocale.autoupdatingCurrentLocale().objectForKey(NSLocaleLanguageCode) as? String) ?? Constants.BaseLocaleName
-        return (localizations[languageCode] ?? localizations[Constants.BaseLocaleName]) as? [String : AnyObject] ?? [:]
+    private var activeLocalization: LocalizationMap {
+        if let script = scriptCode, loc = localizations[languageCode + "-" + script] as? LocalizationMap {
+            return loc
+        }
+        else if let loc = localizations[languageCode] as? LocalizationMap {
+            return loc
+        }
+        return [:]
     }
 
     // MARK: Initialization
