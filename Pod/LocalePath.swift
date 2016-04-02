@@ -39,6 +39,10 @@ import Foundation
         return Locale.sharedInstance.traverse(components) as? [String : AnyObject]
     }
     
+    public var arrayValue: [AnyObject]? {
+        return Locale.sharedInstance.traverse(components) as? [AnyObject]
+    }
+    
     // MARK: Printable
 
     public override var description: String {
