@@ -10,4 +10,5 @@ import Foundation
 
 enum LocaleKitError: ErrorType {
     case FailedToParseJSON(path: String)
+    case FailedToWriteData
 }

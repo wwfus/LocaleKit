@@ -41,24 +41,31 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
         }
         return [:]
     }
+    
+    private let mutex = dispatch_semaphore_create(1)
 
     // MARK: Initialization
 
     private override init() {
         super.init()
     }
-
+    
     // MARK: Loading
 
-    public func load(bundleURL: NSURL, password: String? = nil) throws {
-
-        let archive = try ZZArchive(URL: bundleURL)
-        
+    public func load(bundleURL: NSURL) throws {
+        dispatch_semaphore_wait(mutex, DISPATCH_TIME_FOREVER)
+        defer { dispatch_semaphore_signal(mutex) }
+        let archive: ZZArchive = try {
+            let cachedPath = Constants.CachedLocalizationArchivePath
+            let cachedURL = NSURL(fileURLWithPath: cachedPath)
+            if let cached = try? ZZArchive(URL: cachedURL) {
+                return cached
+            }
+            return try ZZArchive(URL: bundleURL)
+        }()
         let entries = archive.entries.filter { $0.fileName.hasSuffix(".json") }
-        
         let localizationEntries = entries.filter { $0.fileName.hasPrefix(Constants.LocalizationDirectoryName) }
         try loadLocalizations(localizationEntries)
-        
     }
 
     private func loadLocalizations(entries: [ZZArchiveEntry]) throws {
@@ -86,7 +93,8 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
 
         for (locale, data) in locales {
             let target = (localizations[locale] as? LocalizationMap) ?? (locale == Constants.BaseLocaleName ? [:] : localizations[Constants.BaseLocaleName] as? LocalizationMap) ?? [:]
-            localizations[locale] = deepMerge(target, data)
+            let merged = deepMerge(target, data)
+            localizations[locale] = merged
         }
 
     }
@@ -97,10 +105,13 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
         return LPath(components: [String(group)])
     }
 
-    internal func traverse(var components: [String]) -> AnyObject? {
+    internal func traverse(components: [String]) -> AnyObject? {
+        dispatch_semaphore_wait(mutex, DISPATCH_TIME_FOREVER)
+        defer { dispatch_semaphore_signal(mutex) }
+        var comps = components
         var currentValue: AnyObject? = activeLocalization
-        while components.count > 0 {
-            let component = components.removeFirst()
+        while comps.count > 0 {
+            let component = comps.removeFirst()
             currentValue = (currentValue as? LocalizationMap)?[component]
         }
         return currentValue
