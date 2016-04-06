@@ -58,11 +58,14 @@ import Alamofire
     }
     
     public func downloadLocalizations(completion: Completion? = nil) {
-        print(Constants.CachedLocalizationArchivePath)
         guard let url = remoteArchiveLocation else {
             return
         }
-        request(.GET, url).responseData { response in
+        request(.GET, url).validate(statusCode: 200..<300).responseData { response in
+            if let error = response.result.error {
+                completion?(success: false, error: response.result.error)
+                return
+            }
             guard let zipData = response.data else {
                 completion?(success: false, error: response.result.error)
                 return
@@ -88,7 +91,6 @@ import Alamofire
             throw LocaleKitError.FailedToWriteData
         }
         let fileURL = NSURL(fileURLWithPath: path)
-        print(fileURL)
         try Locale.sharedInstance.load(fileURL)
     }
     
