@@ -104,9 +104,7 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
         
         let fullLocaleCode = languageCode + "-" + countryCode
         
-        let containsCode = fullLocaleCode == code
-        
-        return containsCode
+        return fullLocaleCode == code
         
     }
 
