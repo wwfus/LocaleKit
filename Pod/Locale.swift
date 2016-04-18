@@ -11,6 +11,7 @@ import zipzap
 
 private let languageComponents = NSLocale.componentsFromLocaleIdentifier(NSLocale.currentLocale().localeIdentifier)
 private let languageCode = languageComponents[NSLocaleLanguageCode] ?? Constants.BaseLocaleName
+private let countryCode = languageComponents[NSLocaleCountryCode] ?? ""
 private let scriptCode = languageComponents[NSLocaleScriptCode]
 
 @objc public final class Locale: NSObject {
@@ -104,6 +105,18 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
         let localeIdentifier = NSLocale.currentLocale().objectForKey(NSLocaleIdentifier) as! String
         
         return localeIdentifier == identifier
+        
+    }
+    
+    public class func activeLanguageEqualsCode(identifier: String) -> Bool {
+        
+        return identifier == languageCode
+        
+    }
+    
+    public class func activeCountryEqualsCode(identifier: String) -> Bool {
+        
+        return identifier == countryCode
         
     }
 
