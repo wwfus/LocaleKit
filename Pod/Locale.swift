@@ -11,7 +11,7 @@ import zipzap
 
 private let languageComponents = NSLocale.componentsFromLocaleIdentifier(NSLocale.currentLocale().localeIdentifier)
 private let languageCode = languageComponents[NSLocaleLanguageCode] ?? Constants.BaseLocaleName
-private let countryCode = languageComponents[NSLocaleCountryCode] ?? ""
+private let countryCode = languageComponents[NSLocaleCountryCode]
 private let scriptCode = languageComponents[NSLocaleScriptCode]
 
 @objc public final class Locale: NSObject {
@@ -31,7 +31,15 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
     ]
 
     private var activeLocalization: LocalizationMap {
-        if let script = scriptCode, loc = localizations[languageCode + "-" + script] as? LocalizationMap {
+        let c1 = [languageCode, scriptCode].flatMap({ $0 }).joinWithSeparator("-")
+        let fullComponentString = [c1, countryCode].flatMap({ $0 }).joinWithSeparator("_")
+        if let loc = localizations[fullComponentString] as? LocalizationMap {
+            return loc
+        }
+        else if let script = scriptCode, loc = localizations[languageCode + "-" + script] as? LocalizationMap {
+            return loc
+        }
+        else if let country = countryCode, loc = localizations[languageCode + "_" + country] as? LocalizationMap {
             return loc
         }
         else if let loc = localizations[languageCode] as? LocalizationMap {
@@ -101,23 +109,16 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
     }
     
     public class func activeLocaleEqualsCode(identifier: String) -> Bool {
-        
         let localeIdentifier = NSLocale.currentLocale().objectForKey(NSLocaleIdentifier) as! String
-        
         return localeIdentifier == identifier
-        
     }
     
     public class func activeLanguageEqualsCode(identifier: String) -> Bool {
-        
         return identifier == languageCode
-        
     }
     
     public class func activeCountryEqualsCode(identifier: String) -> Bool {
-        
         return identifier == countryCode
-        
     }
 
     // MARK: Localizations
