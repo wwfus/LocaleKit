@@ -9,10 +9,10 @@
 import Foundation
 import zipzap
 
-private let languageComponents = NSLocale.componentsFromLocaleIdentifier(NSLocale.currentLocale().localeIdentifier)
-private let languageCode = languageComponents[NSLocaleLanguageCode] ?? Constants.BaseLocaleName
-private let countryCode = languageComponents[NSLocaleCountryCode]
-private let scriptCode = languageComponents[NSLocaleScriptCode]
+private let languageComponents = Foundation.Locale.components(fromIdentifier: Foundation.Locale.current.identifier)
+private let languageCode = languageComponents[NSLocale.Key.languageCode.rawValue] ?? Constants.BaseLocaleName
+private let countryCode = languageComponents[NSLocale.Key.countryCode.rawValue]
+private let scriptCode = languageComponents[NSLocale.Key.scriptCode.rawValue]
 
 @objc public final class Locale: NSObject {
 
@@ -22,24 +22,24 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
 
     // MARK: Private Properties
 
-    private typealias LocalizationMap = [String : AnyObject]
+    fileprivate typealias LocalizationMap = [String : AnyObject]
     
-    private let fileManager = NSFileManager.defaultManager()
+    fileprivate let fileManager = FileManager.default
     
-    private var localizations: [String : AnyObject] = [
-        Constants.BaseLocaleName : Dictionary<String, AnyObject>()
+    fileprivate var localizations: [String : AnyObject] = [
+        Constants.BaseLocaleName : Dictionary<String, AnyObject>() as AnyObject
     ]
 
-    private var activeLocalization: LocalizationMap {
-        let c1 = [languageCode, scriptCode].flatMap({ $0 }).joinWithSeparator("-")
-        let fullComponentString = [c1, countryCode].flatMap({ $0 }).joinWithSeparator("_")
+    fileprivate var activeLocalization: LocalizationMap {
+        let c1 = [languageCode, scriptCode].flatMap({ $0 }).joined(separator: "-")
+        let fullComponentString = [c1, countryCode].flatMap({ $0 }).joined(separator: "_")
         if let loc = localizations[fullComponentString] as? LocalizationMap {
             return loc
         }
-        else if let script = scriptCode, loc = localizations[languageCode + "-" + script] as? LocalizationMap {
+        else if let script = scriptCode, let loc = localizations[languageCode + "-" + script] as? LocalizationMap {
             return loc
         }
-        else if let country = countryCode, loc = localizations[languageCode + "_" + country] as? LocalizationMap {
+        else if let country = countryCode, let loc = localizations[languageCode + "_" + country] as? LocalizationMap {
             return loc
         }
         else if let loc = localizations[languageCode] as? LocalizationMap {
@@ -51,49 +51,50 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
         return [:]
     }
     
-    private let mutex = dispatch_semaphore_create(1)
+    fileprivate let mutex = DispatchSemaphore(value: 1)
 
     // MARK: Initialization
 
-    private override init() {
+    fileprivate override init() {
         super.init()
     }
     
     // MARK: Loading
 
-    public func load(bundleURL: NSURL) throws {
-        dispatch_semaphore_wait(mutex, DISPATCH_TIME_FOREVER)
-        defer { dispatch_semaphore_signal(mutex) }
+    public func load(_ bundleURL: URL) throws {
+        mutex.wait(timeout: DispatchTime.distantFuture)
+        defer { mutex.signal() }
         let archive: ZZArchive = try {
             let cachedPath = Constants.CachedLocalizationArchivePath
-            let cachedURL = NSURL(fileURLWithPath: cachedPath)
-            if let cached = try? ZZArchive(URL: cachedURL) {
+            let cachedURL = URL(fileURLWithPath: cachedPath)
+            if let cached = try? ZZArchive(url: cachedURL) {
                 return cached
             }
-            return try ZZArchive(URL: bundleURL)
+            return try ZZArchive(url: bundleURL)
         }()
         let entries = archive.entries.filter { $0.fileName.hasSuffix(".json") }
         let localizationEntries = entries.filter { $0.fileName.hasPrefix(Constants.LocalizationDirectoryName) }
         try loadLocalizations(localizationEntries)
     }
 
-    private func loadLocalizations(entries: [ZZArchiveEntry]) throws {
+    fileprivate func loadLocalizations(_ entries: [ZZArchiveEntry]) throws {
 
-        let data = try entries.flatMap { entry -> (NSURL, NSData)? in
-            let url = NSURL(fileURLWithPath: entry.fileName)
+        let data = try entries.flatMap { entry -> (URL, Data)? in
+            let url = URL(fileURLWithPath: entry.fileName)
             let data = try entry.newData()
             return (url, data)
         }
 
-        let jsonObjects = try data.flatMap { (url, data) -> (NSURL, LocalizationMap)? in
-            guard let json = (try? NSJSONSerialization.JSONObjectWithData(data, options: [])) as? LocalizationMap else {
-                throw LocaleKitError.FailedToParseJSON(path: url.absoluteString)
+        let jsonObjects = try data.flatMap { (url, data) -> (URL, LocalizationMap)? in
+            guard let json = (try? JSONSerialization.jsonObject(with: data, options: [])) as? LocalizationMap else {
+                throw LocaleKitError.failedToParseJSON(path: url.absoluteString)
             }
             return (url, json)
         }
 
         let locales = jsonObjects.flatMap { (url, json) -> (String, LocalizationMap)? in
-            guard let components = url.pathComponents where components.count >= 2 else {
+            let components = url.pathComponents
+            guard components.count >= 2 else {
                 return nil
             }
             let directory = components[components.count - 2]
@@ -103,35 +104,35 @@ private let scriptCode = languageComponents[NSLocaleScriptCode]
         for (locale, data) in locales {
             let target = (localizations[locale] as? LocalizationMap) ?? (locale == Constants.BaseLocaleName ? [:] : localizations[Constants.BaseLocaleName] as? LocalizationMap) ?? [:]
             let merged = deepMerge(target, data)
-            localizations[locale] = merged
+            localizations[locale] = merged as AnyObject
         }
 
     }
     
-    public class func activeLocaleEqualsCode(identifier: String) -> Bool {
-        let localeIdentifier = NSLocale.currentLocale().objectForKey(NSLocaleIdentifier) as! String
+    public class func activeLocaleEqualsCode(_ identifier: String) -> Bool {
+        let localeIdentifier = (Foundation.Locale.current as NSLocale).object(forKey: NSLocale.Key.identifier) as! String
         return localeIdentifier == identifier
     }
     
-    public class func activeLanguageEqualsCode(identifier: String) -> Bool {
+    public class func activeLanguageEqualsCode(_ identifier: String) -> Bool {
         return identifier == languageCode
     }
     
-    public class func activeCountryEqualsCode(identifier: String) -> Bool {
+    public class func activeCountryEqualsCode(_ identifier: String) -> Bool {
         return identifier == countryCode
     }
 
     // MARK: Localizations
 
-    public class func group(group: AnyObject) -> LPath {
-        return LPath(components: [String(group)])
+    public class func group(_ group: AnyObject) -> LPath {
+        return LPath(components: [String(describing: group)])
     }
 
-    internal func traverse(components: [String]) -> AnyObject? {
-        dispatch_semaphore_wait(mutex, DISPATCH_TIME_FOREVER)
-        defer { dispatch_semaphore_signal(mutex) }
+    internal func traverse(_ components: [String]) -> AnyObject? {
+        mutex.wait(timeout: DispatchTime.distantFuture)
+        defer { mutex.signal() }
         var comps = components
-        var currentValue: AnyObject? = activeLocalization
+        var currentValue: AnyObject? = activeLocalization as AnyObject?
         while comps.count > 0 {
             let component = comps.removeFirst()
             currentValue = (currentValue as? LocalizationMap)?[component]

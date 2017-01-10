@@ -13,7 +13,7 @@ import Alamofire
     
     // MARK: Types
     
-    public typealias Completion = (success: Bool, error: NSError?) -> ()
+    public typealias Completion = (_ success: Bool, _ error: Error?) -> ()
     
     // MARK: Singleton
     
@@ -21,76 +21,76 @@ import Alamofire
     
     // MARK: Public Properties
     
-    public var remoteArchiveLocation: NSURL?
+    public var remoteArchiveLocation: URL?
     public var updateInterval = Constants.DefaultUpdateInterval
     
-    public private(set) var lastUpdated: NSDate {
+    public fileprivate(set) var lastUpdated: Date {
         get {
-            let defaults = NSUserDefaults.standardUserDefaults()
+            let defaults = UserDefaults.standard
             defaults.synchronize()
-            return (defaults.objectForKey(Constants.LastUpdatedDefaultsKey) as? NSDate) ?? NSDate.distantPast()
+            return (defaults.object(forKey: Constants.LastUpdatedDefaultsKey) as? Date) ?? Date.distantPast
         }
         set {
-            let defaults = NSUserDefaults.standardUserDefaults()
-            defaults.setObject(newValue, forKey: Constants.LastUpdatedDefaultsKey)
+            let defaults = UserDefaults.standard
+            defaults.set(newValue, forKey: Constants.LastUpdatedDefaultsKey)
             defaults.synchronize()
         }
     }
     
     // MARK: Initialization
     
-    private override init() {
+    fileprivate override init() {
         super.init()
     }
     
     // MARK: Downloading
     
-    public func downloadLocalizationsIfNeeded(completion: Completion? = nil) {
-        let interval = NSDate().timeIntervalSinceDate(lastUpdated)
+    public func downloadLocalizationsIfNeeded(_ completion: Completion? = nil) {
+        let interval = Date().timeIntervalSince(lastUpdated)
         if interval < updateInterval || Constants.isSimulator {
             if Constants.isSimulator {
                 print("Running on iOS Simulator -- not auto downloading localization data")
             }
-            completion?(success: true, error: nil)
+            completion?(true, nil)
             return
         }
         downloadLocalizations(completion)
     }
     
-    public func downloadLocalizations(completion: Completion? = nil) {
+    public func downloadLocalizations(_ completion: Completion? = nil) {
         guard let url = remoteArchiveLocation else {
             return
         }
-        request(.GET, url).validate(statusCode: 200..<300).responseData { response in
+        request(url).validate(statusCode: 200..<300).responseData { response in
             if let error = response.result.error {
-                completion?(success: false, error: response.result.error)
+                completion?(false, response.result.error)
                 return
             }
             guard let zipData = response.data else {
-                completion?(success: false, error: response.result.error)
+                completion?(false, response.result.error)
                 return
             }
             do {
                 try self.processLocalizationData(zipData)
-                self.lastUpdated = NSDate()
-                completion?(success: true, error: nil)
+                self.lastUpdated = Date()
+                completion?(true, nil)
             }
             catch let err as NSError {
-                completion?(success: false, error: err)
+                completion?(false, err)
             }
             catch {
-                completion?(success: false, error: nil)
+                completion?(false, nil)
             }
         }
     }
  
-    private func processLocalizationData(data: NSData) throws {
-        try NSFileManager.defaultManager().createDirectoryAtPath(Constants.LibraryPath, withIntermediateDirectories: true, attributes: nil)
+    fileprivate func processLocalizationData(_ data: Data) throws {
+        try FileManager.default.createDirectory(atPath: Constants.LibraryPath, withIntermediateDirectories: true, attributes: nil)
         let path = Constants.CachedLocalizationArchivePath
-        guard data.writeToFile(path, atomically: true) else {
-            throw LocaleKitError.FailedToWriteData
+        guard (try? data.write(to: URL(fileURLWithPath: path), options: [.atomic])) != nil else {
+            throw LocaleKitError.failedToWriteData
         }
-        let fileURL = NSURL(fileURLWithPath: path)
+        let fileURL = URL(fileURLWithPath: path)
         try Locale.sharedInstance.load(fileURL)
     }
     

@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum LocaleKitError: ErrorType {
-    case FailedToParseJSON(path: String)
-    case FailedToWriteData
+enum LocaleKitError: Error {
+    case failedToParseJSON(path: String)
+    case failedToWriteData
 }

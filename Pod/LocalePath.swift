@@ -12,7 +12,7 @@ import Foundation
 
     // MARK: Internal Properties
 
-    private let components: [String]
+    fileprivate let components: [String]
 
     // MARK: Initialization
 
@@ -25,7 +25,7 @@ import Foundation
 
     public subscript(key: AnyObject) -> LPath {
         var newComponents = components
-        newComponents.append(String(key))
+        newComponents.append(String(describing: key))
         return LPath(components: newComponents)
     }
 
@@ -47,7 +47,7 @@ import Foundation
 
     public override var description: String {
         if let obj = Locale.sharedInstance.traverse(components) {
-            return String(obj)
+            return String(describing: obj)
         } else {
             return "nil"
         }
