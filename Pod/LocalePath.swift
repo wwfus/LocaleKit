@@ -23,12 +23,12 @@ import Foundation
 
     // MARK: Chaining
 
-    public subscript(key: AnyObject) -> LPath {
+    public subscript(key: Any) -> LPath {
         var newComponents = components
         newComponents.append(String(describing: key))
         return LPath(components: newComponents)
     }
-
+    
     // MARK: Evaluating
 
     public var stringValue: String? {

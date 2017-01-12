@@ -124,7 +124,7 @@ private let scriptCode = languageComponents[NSLocale.Key.scriptCode.rawValue]
 
     // MARK: Localizations
 
-    public class func group(_ group: AnyObject) -> LPath {
+    public class func group(_ group: Any) -> LPath {
         return LPath(components: [String(describing: group)])
     }
 
