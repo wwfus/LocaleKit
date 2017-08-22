@@ -20,6 +20,12 @@ private let scriptCode = languageComponents[NSLocale.Key.scriptCode.rawValue]
 
     public static let sharedInstance = Locale()
 
+    /// The device's language code
+    public static let lc = languageCode
+    
+    /// The device's country code
+    public static let cc = countryCode
+    
     // MARK: Private Properties
 
     fileprivate typealias LocalizationMap = [String : AnyObject]
