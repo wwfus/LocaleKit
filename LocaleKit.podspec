@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = "LocaleKit"
-  s.version          = "1.0.1"
+  s.version          = "1.0.2"
   s.summary          = "LocaleKit makes it easy to manage and synchronize localizations in your app."
   s.homepage         = "https://github.com/TENDIGI/LocaleKit"
   s.license          = 'MIT'
