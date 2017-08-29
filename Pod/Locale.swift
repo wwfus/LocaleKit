@@ -21,7 +21,13 @@ private let scriptCode = languageComponents[NSLocale.Key.scriptCode.rawValue]
     public static let sharedInstance = Locale()
 
     /// The device's language code
-    public static let lc = languageCode
+    public static var lc: String {
+        if let sc = scriptCode {
+            return "\(languageCode)-\(sc)"
+        } else {
+            return languageCode
+        }
+    }
     
     /// The device's country code
     public static let cc = countryCode
